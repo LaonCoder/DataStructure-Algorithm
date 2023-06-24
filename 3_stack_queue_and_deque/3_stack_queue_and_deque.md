@@ -636,3 +636,218 @@
     ```  
 
 </br>
+
+### **2) 이중 링크드 리스트를 이용한 데크 구현**
+- 데크는 리스트의 양쪽 끝에서 효율적인 접근을 제공하기 때문에 이중 링크드 리스트를 사용하여 구현한다.  
+- 이중 링크드 리스트를 통한 양 끝 원소 접근, 삽입, 삭제 연산은 모두 $O(1)$에 가능하다.  
+
+</br>
+
+- 코드 구현
+    ```cpp
+    #include "dlinkedlist.h"
+    #include "runtimeException.h"
+
+    using namespace std;
+
+
+    class DequeEmpty: public RuntimeException {
+    public:
+        DequeEmpty(const string& err) : RuntimeException(err) {}
+    };
+
+
+    template<typename T>
+    class LinkedDeque {
+    public:
+        LinkedDeque();
+        int size() const;
+        bool empty() const;
+        const T& front() const;
+        const T& back() const;
+        void insertFront(const T& elem);
+        void insertBack(const T& elem);
+        void removeFront();
+        void removeBack();
+    private:
+        DLinkedList<T> D;
+        int n;
+    };
+
+    template<typename T>
+    LinkedDeque<T>::LinkedDeque(): D(), n(0) {};
+
+    template<typename T>
+    int LinkedDeque<T>::size() const {
+        return n;
+    }
+
+    template<typename T>
+    bool LinkedDeque<T>::empty() const {
+        return (n == 0);
+    }
+
+    template<typename T>
+    const T& LinkedDeque<T>::front() const {
+        return D.front();
+    }
+
+    template<typename T>
+    const T& LinkedDeque<T>::back() const {
+        return D.back();
+    }
+
+    template<typename T>
+    void LinkedDeque<T>::insertFront(const T& elem) {
+        D.addFront(elem);
+        n++;
+    }
+
+    template<typename T>
+    void LinkedDeque<T>::insertBack(const T& elem) {
+        D.addBack(elem);
+        n++;
+    }
+
+    template<typename T>
+    void LinkedDeque<T>::removeFront() {
+        if (empty()) { throw DequeEmpty("removeFront from empty deque"); }
+        D.removeFront();
+        n--;
+    }
+
+    template<typename T>
+    void LinkedDeque<T>::removeBack() {
+        if (empty()) { throw DequeEmpty("removeBack from empty deque"); }
+        D.removeBack();
+        n--;
+    }
+    ```  
+
+</br>
+
+- 테스트  
+    ```cpp
+    void dequeueFrontAll (LinkedDeque<int>& q) {
+        cout << "dequeSize : " << q.size() << endl;
+        while(!q.empty()) {
+            cout << "dequeue (" << q.front() << ")" << endl;
+            q.removeFront();
+        }
+        cout << endl;
+    }
+
+    void dequeueBackAll (LinkedDeque<int>& q) {
+        while(!q.empty()) {
+            cout << "dequeue (" << q.back() << ")" << endl;
+            q.removeBack();
+        }
+        cout << endl;
+    }
+
+    int main(void) {
+        LinkedDeque<int> deque;
+
+        cout << "Dequeue front" << endl;
+        deque.insertFront(2);
+        deque.insertFront(1);
+        deque.insertBack(3);
+        deque.insertBack(4);
+        deque.insertBack(5);
+        dequeueFrontAll(deque);
+        
+        return EXIT_SUCCESS;
+    }
+    ```  
+    ```
+    Dequeue front
+    dequeSize : 5
+    dequeue (1)
+    dequeue (2)
+    dequeue (3)
+    dequeue (4)
+    dequeue (5)
+    ```  
+
+</br>
+
+## ✔️ **4. 어댑터(Adaptor)와 어댑터 설계 패턴**  
+- 위의 데크 구현 과정에서 원소의 개수를 저장하는 추가적인 기능을 제외하면, 단순히 데크 연산(즉, `insertFront`)을 `DLinkedList`의 해당 연산(즉, `addFront`)에 매핑하여 구현하였다. 
+- 이처럼 한 인터페이스에서 다른 인터페이스로 변환하는 자료구조를 **어댑터(Adapter)** 또는 **랩퍼(Wrapper)** 라고 하며, 클래스의 인터페이스를 클라이언트에서 사용하고자하는 다른 인터페이스로 변환하는 설계 방식을 **어댑터 패턴(adapter pattern)** 이라고 한다.  
+
+</br>
+
+### **1) 데크를 이용한 Stack 인터페이스 구현**  
+- 코드 구현  
+    ```cpp
+    template<typename T>
+    class DequeStack {
+    public:
+        DequeStack();
+        int size() const;
+        bool empty() const;
+        const T& top() const;
+        void push(const T& e);
+        void pop();
+    private:
+        LinkedDeque<T> D;
+    };
+
+    template<typename T>
+    DequeStack<T>::DequeStack(): D() {}
+
+    template<typename T>
+    int DequeStack<T>::size() const {
+        return D.size();
+    }
+
+    template<typename T>
+    bool DequeStack<T>::empty() const {
+        return D.empty();
+    }
+
+    template<typename T>
+    const T& DequeStack<T>::top() const {
+        // if (empty()) { throw StackEmpty("Top of empty stack"); }
+        return D.front();
+    }
+
+    template<typename T>
+    void DequeStack<T>::push(const T& e) {
+        D.insertFront(e);
+    }
+
+    template<typename T>
+    void DequeStack<T>::pop() {
+        // if (empty()) { throw StackEmpty("Pop from empty stack"); }
+        D.removeFront();
+    }
+    ```  
+
+</br>
+
+- 테스트  
+    ```cpp
+    int main(void) {
+        DequeStack<int> dStack;
+
+        dStack.push(1);
+        dStack.push(2);
+        dStack.push(3);
+        dStack.push(4);
+        dStack.push(5);
+
+        int stackSize = dStack.size();
+        for (int i = 0; i < stackSize; i++) {
+            cout << dStack.top() << " ";
+            dStack.pop();
+        }
+        cout << endl;
+        
+        return EXIT_SUCCESS;
+    }
+    ```  
+    ```
+    5 4 3 2 1 
+    ```  
+
