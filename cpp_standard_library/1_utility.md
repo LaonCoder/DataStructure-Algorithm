@@ -245,3 +245,137 @@
     ```  
 
 </br>
+
+## ✔️ **3. 페어**  
+- `std::pair`를 이용하면 원하는 타입으로 구성된 쌍을 만들 수 있다.  
+- `std::pair`는 클래스 템플릿이며, `<utility>`에 정의되어 있고, 복제 생성자와 이동 생성자를 디폴트로 제공한다.  
+- `std::swap(pair1, pair2)`로 페어 오브젝트끼리 맞바꿀 수도 있다.  
+- 어떤 페어 `p`의 원소를 구하려면 직접 접근하거나 인덱스를 이용한다.  
+    - `p.first`, `p.second`, `std::get<0>(p)`, `std::get<1>(p)`와 같이 작성한다.  
+- 페어는 비교 연산자인 `==`, `!=`, `<`, `>`, `>=`, `<=`도 지원한다.  
+
+</br>
+
+### **1) std::make_pair**  
+- C++은 페어를 생성하기 위한 헬퍼함수인 `std::make_pair`를 제공하는데, 타입을 지정하지 않아도 컴파일러가 자동으로 추론한다.  
+    ```cpp
+    #include <iostream>
+    #include <utility>
+
+    using namespace std;
+
+    template<typename T1, typename T2>
+    pair<T2, T1> swapElems(pair<T1, T2> pr) {
+        return pair<T2, T1>{pr.second, pr.first};
+    }
+
+    int main() {
+        pair<const char*, double> charDoub("String1", 3.14);
+        pair<const char*, double> charDoub2 = make_pair("String2", 3.14);
+        pair<const char*, double> charDoub3 = {"String3", 3.14};
+        auto charDoub4 = make_pair("String4", 3.14);
+
+        cout << charDoub.first << ", " << charDoub.second << endl;
+
+        charDoub.first = "SSString";
+        cout << get<0>(charDoub) << ", " << get<1>(charDoub) << endl;
+
+        swap(charDoub2, charDoub3);
+        cout << charDoub2.first << ", " << charDoub2.second << endl;
+
+        auto charDoub4Swapped = swapElems(charDoub4);
+        cout << get<0>(charDoub4Swapped) << ", " << get<1>(charDoub4Swapped) << endl;
+    }
+    ```  
+    ```
+    String1, 3.14
+    SSString, 3.14
+    String3, 3.14
+    3.14, String4
+    ```  
+
+</br>
+
+## ✔️ **4. 튜플**  
+- `std::tuple`을 이용하면 원하는 길이와 타입으로 튜플을 생성할 수 있다. 
+-  `<tuple>`을 포함시켜야 사용할 수 있으며, `std::tuple`은 `std::pair`를 일반화한 것이다.  
+- 페어와 마찬가지로 복제와 이동 생성자를 디폴트로 가지며, `std::swap` 함수로 튜플끼리 맞바꿀 수 있다.  
+- 튜플에서 인덱스가 $i$인 원소는 함수 템플릿 `std::get<i>(t)`로 참조할 수 있다.  
+- `std::get<type>(t)`를 사용하면 타입이 `type`인 원소를 직접 참조할 수 있다.  
+- 튜플도 비교 연산자인 `==`, `!=`, `<`, `>`, `>=`, `<=`를 지원한다.  
+    - 튜플 두 개를 비교할 때는 각 원소를 사전 순서로 비교하며, 비교 연산은 인덱스가 0인 원소부터 시작한다.  
+
+</br> 
+
+### **1) std::make_tuple**  
+- C++은 튜플를 생성하기 위한 헬퍼함수인 `std::make_tuple`을 제공하는데, 타입을 지정하지 않아도 자동으로 추론된다.  
+    ```cpp
+    #include <iostream>
+    #include <tuple>
+    #include <string>
+
+    using namespace std;
+
+    int main() {
+        auto t1 = make_tuple(1, 2, 3);
+        tuple<string, int, float> t2 = make_tuple("abc", 1, 3.14f);
+        tuple<string, int, float> t3 = {"ghi", 2, 6.28f};
+
+        cout << "tup1 : (" << get<0>(t1) << ", " 
+                        << get<1>(t1) << ", " 
+                        << get<2>(t1) << ")" << endl;
+
+        get<0>(t2) = "ghi";
+        cout << get<string>(t2) << endl;
+    }
+    ```  
+
+</br>
+
+### **2) std::tie와 std::ignore**  
+- `std::tie`는 원소에 대한 레퍼런스로 튜플을 생성한다.  
+- `std::ignore`를 이용하면 튜플의 원소를 명시적으로 무시할 수 있다.  
+    ```cpp
+    #include <iostream>
+    #include <tuple>
+    #include <string>
+
+    using namespace std;
+
+    int main() {
+        int first = 1;
+        int second = 2;
+        int third = 3;
+        int fourth = 4;
+
+        auto tup = tie(first, second, third, fourth) = make_tuple(0, 1002, 1003, 1004);
+        first = 1001;
+        cout << "tup : (" 
+            << get<0>(tup) << ", " 
+            << get<1>(tup) << ", " 
+            << get<2>(tup) << ", " 
+            << get<3>(tup) << ")" << endl;
+            
+        int a;
+        int b;
+        
+        // 두 번째와 네 번째 인수를 각각 a와 b에 바인딩한다.
+        tie(ignore, a, ignore, b) = tup;
+        cout << "a: " << a << endl;
+        cout << "b: " << b << endl;
+
+        tie(a, b) = make_pair(3001, 3002);
+        cout << "a: " << a << endl;
+        cout << "b: " << b << endl;
+    }
+    ```  
+    ```
+    tup : (1001, 1002, 1003, 1004)
+    a: 1002
+    b: 1004
+    a: 3001
+    b: 3002
+    ```  
+
+</br>
+
