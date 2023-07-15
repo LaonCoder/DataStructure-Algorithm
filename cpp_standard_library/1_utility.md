@@ -379,3 +379,147 @@
 
 </br>
 
+## ✔️ **5. 레퍼런스 래퍼**  
+- 레퍼런스 래퍼는 `type&` 오브젝트에 대한 래퍼로서, 복제 생성 가능하고, 복제 대입 가능하며, `<functional>` 헤더에 정의되어 있다.  
+    - 표준 템플릿 라이브러리에 있는 컨터이너에서 사용할 수 있다.  
+    (`std::vector<std::reference_wrapper<int>> myIntRefVector`)  
+    - `std::reference_wrapper` 오브젝트를 가진 클래스 인스턴스를 복제할 수 있다.  
+    (일반 레퍼런스로는 불가능하다.)  
+    ```cpp
+    #include <functional>
+    ...
+    void foo() {
+        std::cout << "Invoked" << std::endl;
+    }
+
+    int main() {
+        typedef void CallableUnit();
+        reference_wrapper<callableUnit> refWrap(foo);
+        refWrap();  // 여기서 호출된다.
+    }
+    ```  
+
+</br>
+
+### **1) std::ref와 std::cref**  
+- 헬퍼 함수인 `std::ref`와 `std::cref`를 이용하면 변수에 대한 레퍼런스 래퍼를 간편하게 만들 수 있다.  
+- `std::ref`는 상수가 아닌 레퍼런스 래퍼를 생성하고, `std::cref`는 상수 레퍼런스 래퍼를 생성한다.  
+    ```cpp
+    #include <iostream>
+    #include <functional>
+    #include <utility>
+
+    void invokeMe(const std::string& s) {
+        std::cout << s << ": const " << std::endl;
+    }
+
+    template<typename T>
+    void doubleMe(T t) {
+        t *= 2;
+    }
+
+    int main() {
+        std::string s{"string"};
+        invokeMe(std::cref(s));
+
+        int i = 1;
+        std::cout << "i: " << i << std::endl;
+
+        doubleMe(i);
+        std::cout << "doubleMe(i): " << i << std::endl;  
+
+        doubleMe(std::ref(i));
+        std::cout << "doubleMe(std::ref(i)): " << i << std::endl;  
+
+        int a{2011};
+        auto tup = std::make_pair(a, std::ref(a));
+        // (tup.first, tup.second): (2011, 2011);
+        std::cout << "(tup.first, tup.second): (" << tup.first << ", " << tup.second << ")" << std::endl;
+        
+        a = 2014;
+        // (tup.first, tup.second): (2011, 2014);
+        std::cout << "(tup.first, tup.second): (" << tup.first << ", " << tup.second << ")" << std::endl;
+    }
+    ```  
+    ```
+    string: const 
+    i: 1
+    doubleMe(i): 1
+    doubleMe(std::ref(i))2
+    (tup.first, tup.second): (2011, 2011)
+    (tup.first, tup.second): (2011, 2014)
+    ```  
+
+</br>
+
+## ✔️ **6. 스마트 포인터**  
+- 스마트 포인터는 RAII 원칙에 따라 리소스를 관리한다.  
+    - 따라서 스마트 포인터가 스코프를 벗어나면 자동으로 해당 리소스를 해제한다.  
+    - RAII란 '리소스 획득 = 초기화'를 의미하는 'Resource Acquisition is Initialization'의 줄임말이며, C++에서 리소스 획득 및 해제와 오브젝트의 수명이 연동되는 잘 알려진 기법이다.  
+    - 결국 스마트 포인터는 생성자에서 메모리를 할당했다가 소멸자에서 해제한다는 것을 의미한다.  
+    - C++에서 이 기법을 적용하면 오브젝트가 스코프를 벗어날 때 소멸자가 호출된다.  
+    
+</br>
+
+### **1) std::unique_ptr** 
+- `std::unique_ptr`는 리소스를 독점적으로 관리한다.  
+- 스코프를 벗어나면 리소스를 자동으로 해제하고, 복제 의미론이 필요 없다면 표준 템플릿 라이브러리의 컨테이너나 알고리즘에서 사용할 수 있다.  
+- `std::unique_ptr`는 특수한 삭제자(deleter)를 사용하지 않는다면 기본 포인터만큼 빠르고 오버헤드도 적다.  
+- `std::unique_ptr`에서 제공하는 메서드는 다음과 같다.  
+    |이름|설명|
+    |---|----|
+    |get|리소스에 대한 포인터를 리턴한다.|
+    |get_deleter|리소스에 대한 포인터를 리턴하고 그 리소스를 해제한다.|
+    |release|리소스에 대한 포인터를 리턴하고, 그 리소스를 해제한다.|
+    |reset|리소스를 리셋한다.|
+    |swap|리소스를 맞바꾼다.|  
+    ```cpp
+    #include <iostream>
+    #include <memory>
+
+    using namespace std;
+
+    struct MyInt {
+        MyInt(int i): i_(i) { cout << "Hello " << i_ << endl; }
+        ~MyInt() {
+            cout << "Good by from " << i_ << endl;
+        }
+        int i_;
+    };
+
+    int main() {
+        std::unique_ptr<MyInt> uniquePtr1{ new MyInt(1998) };                // Hello 1998
+        std::cout << "uniquePtr1.get(): " << uniquePtr1.get() << std::endl;  // uniquePtr1.get(): 0x786ce0
+
+        std::unique_ptr<MyInt> uniquePtr2{ std::move(uniquePtr1) };          
+        std::cout << "uniquePtr1.get(): " << uniquePtr1.get() << std::endl;  // uniquePtr1.get(): 0
+        std::cout << "uniquePtr2.get(): " << uniquePtr2.get() << std::endl;  // uniquePtr2.get(): 0x786ce0
+
+        std::unique_ptr<MyInt> localPtr{ new MyInt(2023) };                  // Hello 2023
+
+        uniquePtr2.reset( new MyInt(2011) );                                 // Hello 2011
+
+        MyInt* myInt = uniquePtr2.release();                                 // Good by from 1998
+        delete myInt;                                                        // Good by from 2011
+
+        std::unique_ptr<MyInt> uniquePtr3{ new MyInt(2017) };                // Hello 2017
+        std::unique_ptr<MyInt> uniquePtr4{ new MyInt(2022) };                // Hello 2022
+
+        std::cout << "uniquePtr3.get(): " << uniquePtr3.get() << std::endl;  // uniquePtr3.get(): 0xeb6ce0
+        std::cout << "uniquePtr3.get(): " << uniquePtr4.get() << std::endl;  // uniquePtr3.get(): 0xeb6f40
+
+        swap(uniquePtr3, uniquePtr4);
+
+        std::cout << "uniquePtr3.get(): " << uniquePtr3.get() << std::endl;  // uniquePtr3.get(): 0xeb6f40
+        std::cout << "uniquePtr3.get(): " << uniquePtr4.get() << std::endl;  // uniquePtr3.get(): 0xeb6ce0
+    }  
+
+    // Good by from 2017
+    // Good by from 2022
+    // Good by from 2023
+    ```  
+
+</br>  
+
+
+
